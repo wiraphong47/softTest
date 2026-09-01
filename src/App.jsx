@@ -1,6 +1,11 @@
 import { useRef, useState } from "react";
 import dayjs from "dayjs";
 import customParseFormat from "dayjs/plugin/customParseFormat";
+import {
+  ROLES as roles,
+  REGIONS as regions,
+  createInitialForm,
+} from "./constants/formOptions";
 import { LocalizationProvider } from "@mui/x-date-pickers/LocalizationProvider";
 import { DatePicker } from "@mui/x-date-pickers/DatePicker";
 import { AdapterDayjs } from "@mui/x-date-pickers/AdapterDayjs";
@@ -20,15 +25,6 @@ import {
   TextField,
   Typography,
 } from "@mui/material";
-const roles = [
-    "Researcher",
-    "Photographer",
-    "Drone Operator",
-    "Cartographer",
-    "Medic",
-    "Logistician",
-  ],
-  regions = ["South America", "Africa", "Asia", "Europe", "Australia"];
 const card = {
   background: "#fffdfb",
   border: "1px solid #4d4d45",
@@ -78,9 +74,11 @@ export default function App() {
   function submit(e) {
     e.preventDefault();
     const er = {};
-    if (!/^[A-Za-zА-Яа-яЁё0-9 '\-]{2,50}$/.test(v.name)) er.name = "ชื่อไม่ถูกต้อง (2–50 ตัวอักษร)";
+    if (!/^[A-Za-zА-Яа-яЁё0-9 '\-]{2,50}$/.test(v.name))
+      er.name = "ชื่อไม่ถูกต้อง (2–50 ตัวอักษร)";
     if (v.email.length > 100) er.email = "อีเมลยาวเกิน 100 ตัวอักษร";
-    if (!/^[0-9+\-\s]{1,15}$/.test(v.phone)) er.phone = "เบอร์โทรไม่ถูกต้องหรือยาวเกิน 15 ตัวอักษร";
+    if (!/^[0-9+\-\s]{1,15}$/.test(v.phone))
+      er.phone = "เบอร์โทรไม่ถูกต้องหรือยาวเกิน 15 ตัวอักษร";
     const birth = v.dob && dayjs.isDayjs(v.dob) ? v.dob : dayjs("invalid");
     const age = birth.isValid() ? dayjs().diff(birth, "year") : 0;
     if (!birth.isValid()) er.dob = "กรุณากรอกวันที่ในรูปแบบ DD/MM/YYYY";
@@ -148,18 +146,21 @@ export default function App() {
           ไม่บอกหรอกอย่าหลอกถาม
         </Typography>
       </Box>
-      <Box>
+      <Box sx={{ maxWidth: 1040, mx: "auto", px: { xs: 2, sm: 4 } }}>
         <Typography
           sx={{
             fontSize: 16,
             border: "2px solid #e4e1d9",
             borderRadius: 1,
             backgroundColor: "#f6f4ee",
-            width: 300,
+            display: "flex",
+            width: "max-content",
+            maxWidth: "100%",
             ml: "auto",
             mt: 2,
             mr: 2,
             p: 1,
+            pr: 1.5,
           }}
         >
           จัดทำโดย | นายวีรพงศ์ วงศ์ชารี
@@ -425,8 +426,19 @@ export default function App() {
           </Box>
         </Box>
       </Box>
-      <Snackbar open={Boolean(errorSnack)} autoHideDuration={4000} onClose={() => setErrorSnack("")} anchorOrigin={{ vertical: "top", horizontal: "center" }}>
-        <Alert severity="error" variant="filled" onClose={() => setErrorSnack("")}>{errorSnack}</Alert>
+      <Snackbar
+        open={Boolean(errorSnack)}
+        autoHideDuration={4000}
+        onClose={() => setErrorSnack("")}
+        anchorOrigin={{ vertical: "top", horizontal: "center" }}
+      >
+        <Alert
+          severity="error"
+          variant="filled"
+          onClose={() => setErrorSnack("")}
+        >
+          {errorSnack}
+        </Alert>
       </Snackbar>
       <Snackbar
         open={snack}
