@@ -31,7 +31,7 @@ const roles = [
   regions = ["South America", "Africa", "Asia", "Europe", "Australia"];
 const card = {
   background: "#fffdfb",
-  border: "1px solid #e2dfd8",
+  border: "1px solid #4d4d45",
   borderRadius: 1,
   p: 2,
   mb: 1.75,
@@ -65,6 +65,7 @@ export default function App() {
   });
   const [errors, setErrors] = useState({});
   const [snack, setSnack] = useState(false);
+  const [errorSnack, setErrorSnack] = useState("");
   const set = (k, x) => {
     setV((a) => ({ ...a, [k]: x }));
     setErrors((a) => ({ ...a, [k]: false }));
@@ -77,23 +78,26 @@ export default function App() {
   function submit(e) {
     e.preventDefault();
     const er = {};
-    if (!/^[A-Za-zА-Яа-яЁё0-9 '\-]{2,50}$/.test(v.name)) er.name = true;
-    if (v.email.length > 100) er.email = true;
-    if (!/^[0-9+\-\s]{1,15}$/.test(v.phone)) er.phone = true;
+    if (!/^[A-Za-zА-Яа-яЁё0-9 '\-]{2,50}$/.test(v.name)) er.name = "ชื่อไม่ถูกต้อง (2–50 ตัวอักษร)";
+    if (v.email.length > 100) er.email = "อีเมลยาวเกิน 100 ตัวอักษร";
+    if (!/^[0-9+\-\s]{1,15}$/.test(v.phone)) er.phone = "เบอร์โทรไม่ถูกต้องหรือยาวเกิน 15 ตัวอักษร";
     const birth = v.dob && dayjs.isDayjs(v.dob) ? v.dob : dayjs("invalid");
     const age = birth.isValid() ? dayjs().diff(birth, "year") : 0;
-    if (!birth.isValid() || age <= 18 || age >= 70) er.dob = true;
-    if (!v.roles.length) er.roles = true;
-    if (!v.region) er.region = true;
+    if (!birth.isValid()) er.dob = "กรุณากรอกวันที่ในรูปแบบ DD/MM/YYYY";
+    else if (age <= 18) er.dob = "อายุต่ำเกินไป (ต้องมากกว่า 18 ปี)";
+    else if (age >= 70) er.dob = "แก่เกินไป (ต้องน้อยกว่า 70 ปี)";
+    if (!v.roles.length) er.roles = "กรุณาเลือกบทบาทอย่างน้อย 1 รายการ";
+    if (!v.region) er.region = "กรุณาเลือกภูมิภาค 1 รายการ";
     if (
       !v.file ||
       v.file.size > 5242880 ||
       !["image/jpeg", "image/png", "application/pdf"].includes(v.file.type)
     )
-      er.file = true;
-    if (!v.terms) er.terms = true;
+      er.file = "ไฟล์ต้องเป็น JPG, PNG หรือ PDF และขนาดไม่เกิน 5 MB";
+    if (!v.terms) er.terms = "กรุณายอมรับ Terms and Conditions";
     setErrors(er);
     if (Object.keys(er).length) {
+      setErrorSnack(Object.values(er)[0]);
       const first = formRef.current.querySelector(".field-error");
       const target = first?.matches("input,textarea,select,button")
         ? first
@@ -136,65 +140,43 @@ export default function App() {
           }}
         >
           <Box component="span" sx={{ color: "#c4543b" }}>
-            Real
+            Software
           </Box>
-          bugz
+          Tester
         </Typography>
         <Typography sx={{ fontSize: 10, color: "#777" }}>
-          bug hunting simulator
+          ไม่บอกหรอกอย่าหลอกถาม
         </Typography>
+      </Box>
+      <Box>
         <Typography
           sx={{
-            position: "absolute",
-            right: { xs: 2, sm: 4 },
-            top: 3,
-            fontSize: 20,
+            fontSize: 16,
+            border: "2px solid #e4e1d9",
+            borderRadius: 1,
+            backgroundColor: "#f6f4ee",
+            width: 300,
+            ml: "auto",
+            mt: 2,
+            mr: 2,
+            p: 1,
           }}
         >
-          🇬🇧　▰
+          จัดทำโดย | นายวีรพงศ์ วงศ์ชารี
+          <br /> รหัส | 66040233126
         </Typography>
       </Box>
       <Box
         component="main"
         sx={{ maxWidth: 740, mx: "auto", mt: 4, px: 2, pb: 5 }}
       >
-        <Typography
-          component="a"
-          href="#top"
-          sx={{
-            display: "block",
-            color: "#888",
-            textDecoration: "none",
-            fontSize: 13,
-            mb: 3,
-          }}
-        >
-          ◀ Back to the task description
-        </Typography>
-        <Typography
-          component="h1"
-          sx={{
-            fontFamily: "Georgia,serif",
-            fontWeight: 700,
-            fontSize: { xs: 25, sm: 30 },
-            textAlign: "center",
-            mb: 4,
-          }}
-        >
-          Register for the expedition in search of Eldoria
-        </Typography>
-        <Box>
-          <Typography sx={{ fontSize: 20, mb: 1, textAlign: "center" }}>
-            นายวีรพงศ์ วงศ์ชารี 66040233126
-          </Typography>
-        </Box>
         <Box
           ref={formRef}
           component="form"
           onSubmit={submit}
           sx={{
             bgcolor: "#f6f4ee",
-            border: "1px solid #e4e1d9",
+            border: "1px solid #0099ff",
             borderRadius: 1,
             p: { xs: 1.5, sm: 3 },
             boxShadow: "0 10px 24px #5b4b3910",
@@ -207,6 +189,7 @@ export default function App() {
               fullWidth
               placeholder="e.g., Peter Ford"
               value={v.name}
+              required
               onChange={(e) => set("name", e.target.value)}
               error={!!errors.name}
               sx={input}
@@ -219,6 +202,7 @@ export default function App() {
               fullWidth
               placeholder="e.g., test@email.com"
               value={v.email}
+              required
               onChange={(e) => set("email", e.target.value)}
               error={!!errors.email}
               sx={input}
@@ -233,13 +217,14 @@ export default function App() {
               fullWidth
               placeholder="e.g., +1234567890"
               value={v.phone}
+              required
               onChange={(e) => set("phone", e.target.value)}
               error={!!errors.phone}
               inputProps={{ maxLength: 15 }}
               sx={input}
             />
           </Box>
-          <Box sx={card}>
+          <Box sx={card} className={errors.dob ? "field-error" : ""}>
             <Typography sx={{ fontSize: 13, mb: 1 }}>Date of Birth*</Typography>
             <LocalizationProvider dateAdapter={AdapterDayjs}>
               <DatePicker
@@ -249,7 +234,9 @@ export default function App() {
                 slotProps={{
                   textField: {
                     fullWidth: true,
+                    required: true,
                     error: !!errors.dob,
+                    helperText: errors.dob || "",
                     placeholder: "DD/MM/YYYY",
                     sx: input,
                   },
@@ -386,6 +373,7 @@ export default function App() {
             <FormControlLabel
               control={
                 <Checkbox
+                  required
                   checked={v.terms}
                   onChange={(e) => set("terms", e.target.checked)}
                 />
@@ -400,9 +388,7 @@ export default function App() {
               sx={{
                 background: "#fff",
                 border: "1px solid #e0ddd5",
-                color: "#252320",
-                textTransform: "none",
-                fontFamily: "Georgia,serif",
+                color: "#db0859",
                 fontWeight: 600,
                 px: 2,
                 "&:hover": { background: "#fffaf7", borderColor: "#c4543b" },
@@ -429,9 +415,7 @@ export default function App() {
               sx={{
                 background: "#fff",
                 border: "1px solid #e0ddd5",
-                color: "#252320",
-                textTransform: "none",
-                fontFamily: "Georgia,serif",
+                color: "#db0859",
                 fontWeight: 600,
                 px: 2,
               }}
@@ -441,6 +425,9 @@ export default function App() {
           </Box>
         </Box>
       </Box>
+      <Snackbar open={Boolean(errorSnack)} autoHideDuration={4000} onClose={() => setErrorSnack("")} anchorOrigin={{ vertical: "top", horizontal: "center" }}>
+        <Alert severity="error" variant="filled" onClose={() => setErrorSnack("")}>{errorSnack}</Alert>
+      </Snackbar>
       <Snackbar
         open={snack}
         autoHideDuration={3500}
