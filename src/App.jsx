@@ -26,22 +26,30 @@ import {
   Typography,
 } from "@mui/material";
 const card = {
-  background: "#fffdfb",
-  border: "1px solid #4d4d45",
-  borderRadius: 1,
-  p: 2,
-  mb: 1.75,
+  background: "rgba(255,255,255,.92)",
+  border: "1px solid #e8e2d8",
+  borderRadius: 2.5,
+  p: { xs: 1.75, sm: 2.25 },
+  mb: 2,
   transition: "all .2s ease",
   "&:focus-within": {
-    borderColor: "#c4543b",
-    boxShadow: "0 4px 14px rgba(196,84,59,.10)",
+    borderColor: "#d55b3d",
+    boxShadow: "0 8px 22px rgba(196,84,59,.14)",
+    transform: "translateY(-1px)",
   },
 };
 dayjs.extend(customParseFormat);
 const input = {
-  "& .MuiOutlinedInput-root": { borderRadius: 0.7, background: "#fff" },
-  "& .MuiOutlinedInput-notchedOutline": { borderColor: "#dedbd4" },
-  "& .MuiInputBase-input": { fontSize: 14 },
+  "& .MuiOutlinedInput-root": {
+    borderRadius: 1.5,
+    background: "#fff",
+    transition: "box-shadow .2s",
+  },
+  "& .MuiOutlinedInput-notchedOutline": { borderColor: "#e5dfd5" },
+  "& .MuiOutlinedInput-root.Mui-focused": {
+    boxShadow: "0 0 0 4px rgba(213,91,61,.12)",
+  },
+  "& .MuiInputBase-input": { fontSize: 14, py: 1.45 },
 };
 export default function App() {
   const formRef = useRef();
@@ -112,11 +120,15 @@ export default function App() {
     <Box
       sx={{
         minHeight: "100vh",
-        bgcolor: "#faf8f3",
+        bgcolor: "#f7f2ea",
         backgroundImage:
-          "radial-gradient(circle at 50% -20%, #ffffff 0%, transparent 55%)",
+          "radial-gradient(circle at 6% 4%, #fff 0%, transparent 28%), radial-gradient(circle at 92% 11%, rgba(244,154,87,.30) 0%, transparent 25%), linear-gradient(135deg,#f9f5ee 0%,#f1e9de 100%)",
         fontFamily: "Arial,sans-serif",
         color: "#272522",
+        position: "relative",
+        overflow: "hidden",
+        "&::before": { content: '""', position: "absolute", width: 620, height: 620, border: "1px solid rgba(19,35,59,.12)", borderRadius: "50%", right: -330, top: 135, pointerEvents: "none", boxShadow: "0 0 0 55px rgba(19,35,59,.025), 0 0 0 110px rgba(19,35,59,.018)" },
+        "&::after": { content: '""', position: "absolute", width: 370, height: 370, background: "radial-gradient(circle, rgba(236,111,58,.20), transparent 68%)", borderRadius: "50%", left: -185, bottom: 50, pointerEvents: "none" },
       }}
     >
       <Box
@@ -124,17 +136,20 @@ export default function App() {
         sx={{
           maxWidth: 1040,
           mx: "auto",
-          pt: 2.5,
+          pt: { xs: 3, sm: 5 },
           px: { xs: 2, sm: 4 },
           position: "relative",
+          zIndex: 1,
         }}
       >
         <Typography
           sx={{
             fontFamily: "Georgia,serif",
             fontWeight: 700,
-            fontSize: 34,
+            fontSize: { xs: 31, sm: 38 },
             lineHeight: 0.8,
+            letterSpacing: "-.04em",
+            textShadow: "0 3px 10px rgba(38,32,28,.12)",
           }}
         >
           <Box component="span" sx={{ color: "#c4543b" }}>
@@ -142,25 +157,34 @@ export default function App() {
           </Box>
           Tester
         </Typography>
-        <Typography sx={{ fontSize: 10, color: "#777" }}>
+        <Typography
+          sx={{
+            fontSize: 11,
+            color: "#8b766c",
+            mt: 0.6,
+            letterSpacing: ".04em",
+          }}
+        >
           ไม่บอกหรอกอย่าหลอกถาม
         </Typography>
       </Box>
       <Box sx={{ maxWidth: 1040, mx: "auto", px: { xs: 2, sm: 4 } }}>
         <Typography
           sx={{
-            fontSize: 16,
-            border: "2px solid #e4e1d9",
-            borderRadius: 1,
-            backgroundColor: "#f6f4ee",
+            fontSize: 14,
+            border: "1px solid rgba(27,43,63,.16)",
+            borderRadius: 2.5,
+            background: "linear-gradient(135deg,rgba(255,255,255,.88),rgba(246,239,230,.78))",
             display: "flex",
             width: "max-content",
             maxWidth: "100%",
             ml: "auto",
             mt: 2,
             mr: 2,
-            p: 1,
-            pr: 1.5,
+            p: 1.25,
+            pr: 2,
+            boxShadow: "0 12px 28px rgba(28,38,53,.10)",
+            backdropFilter: "blur(8px)",
           }}
         >
           จัดทำโดย | นายวีรพงศ์ วงศ์ชารี
@@ -169,18 +193,23 @@ export default function App() {
       </Box>
       <Box
         component="main"
-        sx={{ maxWidth: 740, mx: "auto", mt: 4, px: 2, pb: 5 }}
+        sx={{ maxWidth: 760, mx: "auto", mt: { xs: 3, sm: 5 }, px: 2, pb: 7, position: "relative", zIndex: 1 }}
       >
         <Box
           ref={formRef}
           component="form"
           onSubmit={submit}
           sx={{
-            bgcolor: "#f6f4ee",
-            border: "1px solid #0099ff",
-            borderRadius: 1,
-            p: { xs: 1.5, sm: 3 },
-            boxShadow: "0 10px 24px #5b4b3910",
+            bgcolor: "rgba(255,253,249,.82)",
+            border: "1px solid rgba(255,255,255,.9)",
+            borderRadius: 5,
+            p: { xs: 1.5, sm: 3.25 },
+            boxShadow: "0 28px 65px rgba(30,38,50,.15), 0 2px 0 rgba(255,255,255,.9) inset",
+            backdropFilter: "blur(14px)",
+            position: "relative",
+            overflow: "hidden",
+            "&::before": { content: '""', position: "absolute", top: 0, left: 0, right: 0, height: 7, background: "linear-gradient(90deg,#15273f 0%,#d85e3e 44%,#f0ad75 65%,#15273f 100%)" },
+            "& .MuiFormControlLabel-root": { transition: "transform .16s ease, color .16s ease", "&:hover": { transform: "translateX(4px)", color: "#c55337" } },
           }}
         >
           <Box sx={card}>
@@ -383,16 +412,31 @@ export default function App() {
               sx={{ m: 0, fontSize: 14 }}
             />
           </Box>
-          <Box sx={{ display: "flex", gap: 1.5, mt: 2 }}>
+          <Box
+            sx={{
+              display: "flex",
+              flexWrap: "wrap",
+              gap: 1.5,
+              mt: 2.5,
+              pt: 2.5,
+              borderTop: "1px solid #e8e2d8",
+            }}
+          >
             <Button
               type="submit"
               sx={{
-                background: "#fff",
-                border: "1px solid #e0ddd5",
-                color: "#db0859",
-                fontWeight: 600,
-                px: 2,
-                "&:hover": { background: "#fffaf7", borderColor: "#c4543b" },
+                background: "linear-gradient(135deg,#d75d3d,#b6422c)",
+                color: "#fff",
+                fontWeight: 700,
+                borderRadius: 2,
+                px: 2.5,
+                py: 1.15,
+                boxShadow: "0 8px 16px rgba(196,84,59,.25)",
+                "&:hover": {
+                  background: "linear-gradient(135deg,#c94d31,#a93725)",
+                  transform: "translateY(-1px)",
+                  boxShadow: "0 11px 20px rgba(196,84,59,.3)",
+                },
               }}
             >
               Submit Registration
@@ -416,9 +460,11 @@ export default function App() {
               sx={{
                 background: "#fff",
                 border: "1px solid #e0ddd5",
-                color: "#db0859",
+                color: "#7d7069",
                 fontWeight: 600,
-                px: 2,
+                borderRadius: 2,
+                px: 2.25,
+                "&:hover": { background: "#f3eee7", borderColor: "#c9bbae" },
               }}
             >
               Clear Form
