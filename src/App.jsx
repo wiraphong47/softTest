@@ -1,6 +1,5 @@
-import { useRef, useState } from "react";
-import dayjs from "dayjs";
-import customParseFormat from "dayjs/plugin/customParseFormat";
+import { useLayoutEffect, useRef, useState } from "react";
+import { validateForm } from "./utils/validateForm.js";
 import {
   ROLES as roles,
   REGIONS as regions,
@@ -35,10 +34,9 @@ const card = {
   "&:focus-within": {
     borderColor: "#d55b3d",
     boxShadow: "0 8px 22px rgba(196,84,59,.14)",
-    transform: "translateY(-1px)",
   },
 };
-dayjs.extend(customParseFormat);
+
 const input = {
   "& .MuiOutlinedInput-root": {
     borderRadius: 1.5,
@@ -51,29 +49,72 @@ const input = {
   },
   "& .MuiInputBase-input": { fontSize: 14, py: 1.45 },
 };
+function FieldSection({ name, error, children }) {
+  return (
+    <Box
+      data-field={name}
+      role="group"
+      aria-labelledby={name + "-label"}
+      aria-describedby={error ? name + "-error" : undefined}
+      tabIndex={-1}
+      sx={{
+        ...card,
+        scrollMarginTop: 88,
+        ...(error
+          ? {
+              borderColor: "error.main",
+              "&:focus-within": { borderColor: "error.main" },
+            }
+          : {}),
+      }}
+    >
+      {children}
+      {error && (
+        <Typography
+          id={name + "-error"}
+          sx={{ color: "error.main", fontSize: 13, mt: 1 }}
+        >
+          {error}
+        </Typography>
+      )}
+    </Box>
+  );
+}
 export default function App() {
   const formRef = useRef();
-  const [v, setV] = useState({
-    name: "",
-    email: "",
-    phone: "",
-    dob: null,
-    exp: "No experience",
-    roles: [],
-    region: "",
-    salary: 700,
-    contact: "Email",
-    file: null,
-    comments: "",
-    terms: false,
-  });
+  const [v, setV] = useState(createInitialForm);
+  const fileRef = useRef(null);
+  const pendingFocus = useRef(null);
   const [errors, setErrors] = useState({});
   const [snack, setSnack] = useState(false);
   const [errorSnack, setErrorSnack] = useState("");
   const set = (k, x) => {
     setV((a) => ({ ...a, [k]: x }));
     setErrors((a) => ({ ...a, [k]: false }));
+    setSnack(false);
+    setErrorSnack("");
   };
+  useLayoutEffect(() => {
+    const key = pendingFocus.current;
+    if (!key) return;
+    const section = formRef.current?.querySelector(
+      '[data-field="' + key + '"]',
+    );
+    const target = section?.querySelector(
+      '[role="spinbutton"], input:not([type="hidden"]):not([hidden]), textarea, [role="combobox"], button',
+    );
+    section?.scrollIntoView({ behavior: "smooth", block: "center" });
+    (target || section)?.focus({ preventScroll: true });
+    pendingFocus.current = null;
+  }, [errors]);
+  function clearForm() {
+    setV(createInitialForm());
+    setErrors({});
+    setSnack(false);
+    setErrorSnack("");
+    pendingFocus.current = null;
+    if (fileRef.current) fileRef.current.value = "";
+  }
   const toggleRole = (r) =>
     set(
       "roles",
@@ -81,37 +122,14 @@ export default function App() {
     );
   function submit(e) {
     e.preventDefault();
-    const er = {};
-    if (!/^[A-Za-zА-Яа-яЁё0-9 '\-]{2,50}$/.test(v.name))
-      er.name = "ชื่อไม่ถูกต้อง (2–50 ตัวอักษร)";
-    if (v.email.length > 100) er.email = "อีเมลยาวเกิน 100 ตัวอักษร";
-    if (!/^[0-9+\-\s]{1,15}$/.test(v.phone))
-      er.phone = "เบอร์โทรไม่ถูกต้องหรือยาวเกิน 15 ตัวอักษร";
-    const birth = v.dob && dayjs.isDayjs(v.dob) ? v.dob : dayjs("invalid");
-    const age = birth.isValid() ? dayjs().diff(birth, "year") : 0;
-    if (!birth.isValid()) er.dob = "กรุณากรอกวันที่ในรูปแบบ DD/MM/YYYY";
-    else if (age <= 18) er.dob = "อายุต่ำเกินไป (ต้องมากกว่า 18 ปี)";
-    else if (age >= 70) er.dob = "แก่เกินไป (ต้องน้อยกว่า 70 ปี)";
-    if (!v.roles.length) er.roles = "กรุณาเลือกบทบาทอย่างน้อย 1 รายการ";
-    if (!v.region) er.region = "กรุณาเลือกภูมิภาค 1 รายการ";
-    if (
-      !v.file ||
-      v.file.size > 5242880 ||
-      !["image/jpeg", "image/png", "application/pdf"].includes(v.file.type)
-    )
-      er.file = "ไฟล์ต้องเป็น JPG, PNG หรือ PDF และขนาดไม่เกิน 5 MB";
-    if (!v.terms) er.terms = "กรุณายอมรับ Terms and Conditions";
+    const er = validateForm(v);
+    pendingFocus.current = Object.keys(er)[0] || null;
+    setSnack(false);
+    setErrorSnack("");
     setErrors(er);
     if (Object.keys(er).length) {
       setErrorSnack(Object.values(er)[0]);
-      const first = formRef.current.querySelector(".field-error");
-      const target = first?.matches("input,textarea,select,button")
-        ? first
-        : first?.querySelector(
-            "input,textarea,select,button,[role='radio'],[role='checkbox']",
-          );
-      first?.scrollIntoView({ behavior: "smooth", block: "center" });
-      target?.focus?.({ preventScroll: true });
+
       return;
     }
     setSnack(true);
@@ -127,8 +145,31 @@ export default function App() {
         color: "#272522",
         position: "relative",
         overflow: "hidden",
-        "&::before": { content: '""', position: "absolute", width: 620, height: 620, border: "1px solid rgba(19,35,59,.12)", borderRadius: "50%", right: -330, top: 135, pointerEvents: "none", boxShadow: "0 0 0 55px rgba(19,35,59,.025), 0 0 0 110px rgba(19,35,59,.018)" },
-        "&::after": { content: '""', position: "absolute", width: 370, height: 370, background: "radial-gradient(circle, rgba(236,111,58,.20), transparent 68%)", borderRadius: "50%", left: -185, bottom: 50, pointerEvents: "none" },
+        "&::before": {
+          content: '""',
+          position: "absolute",
+          width: 620,
+          height: 620,
+          border: "1px solid rgba(19,35,59,.12)",
+          borderRadius: "50%",
+          right: -330,
+          top: 135,
+          pointerEvents: "none",
+          boxShadow:
+            "0 0 0 55px rgba(19,35,59,.025), 0 0 0 110px rgba(19,35,59,.018)",
+        },
+        "&::after": {
+          content: '""',
+          position: "absolute",
+          width: 370,
+          height: 370,
+          background:
+            "radial-gradient(circle, rgba(236,111,58,.20), transparent 68%)",
+          borderRadius: "50%",
+          left: -185,
+          bottom: 50,
+          pointerEvents: "none",
+        },
       }}
     >
       <Box
@@ -174,13 +215,15 @@ export default function App() {
             fontSize: 14,
             border: "1px solid rgba(27,43,63,.16)",
             borderRadius: 2.5,
-            background: "linear-gradient(135deg,rgba(255,255,255,.88),rgba(246,239,230,.78))",
-            display: "flex",
-            width: "max-content",
+            background:
+              "linear-gradient(135deg,rgba(255,255,255,.88),rgba(246,239,230,.78))",
+            display: "block",
+            overflowWrap: "anywhere",
+            width: "fit-content",
             maxWidth: "100%",
             ml: "auto",
             mt: 2,
-            mr: 2,
+            mr: 0,
             p: 1.25,
             pr: 2,
             boxShadow: "0 12px 28px rgba(28,38,53,.10)",
@@ -193,69 +236,117 @@ export default function App() {
       </Box>
       <Box
         component="main"
-        sx={{ maxWidth: 760, mx: "auto", mt: { xs: 3, sm: 5 }, px: 2, pb: 7, position: "relative", zIndex: 1 }}
+        sx={{
+          maxWidth: 760,
+          mx: "auto",
+          mt: { xs: 3, sm: 5 },
+          px: 2,
+          pb: 7,
+          position: "relative",
+          zIndex: 1,
+        }}
       >
         <Box
           ref={formRef}
           component="form"
           onSubmit={submit}
+          noValidate
           sx={{
             bgcolor: "rgba(255,253,249,.82)",
             border: "1px solid rgba(255,255,255,.9)",
             borderRadius: 5,
             p: { xs: 1.5, sm: 3.25 },
-            boxShadow: "0 28px 65px rgba(30,38,50,.15), 0 2px 0 rgba(255,255,255,.9) inset",
+            boxShadow:
+              "0 28px 65px rgba(30,38,50,.15), 0 2px 0 rgba(255,255,255,.9) inset",
             backdropFilter: "blur(14px)",
             position: "relative",
             overflow: "hidden",
-            "&::before": { content: '""', position: "absolute", top: 0, left: 0, right: 0, height: 7, background: "linear-gradient(90deg,#15273f 0%,#d85e3e 44%,#f0ad75 65%,#15273f 100%)" },
-            "& .MuiFormControlLabel-root": { transition: "transform .16s ease, color .16s ease", "&:hover": { transform: "translateX(4px)", color: "#c55337" } },
+            "&::before": {
+              content: '""',
+              position: "absolute",
+              top: 0,
+              left: 0,
+              right: 0,
+              height: 7,
+              background:
+                "linear-gradient(90deg,#15273f 0%,#d85e3e 44%,#f0ad75 65%,#15273f 100%)",
+            },
+            "& .MuiFormControlLabel-root": {
+              transition: "color .16s ease",
+              "&:hover": { color: "#c55337" },
+            },
           }}
         >
-          <Box sx={card}>
-            <Typography sx={{ fontSize: 13, mb: 1 }}>Full Name*</Typography>
+          <FieldSection name="name" error={errors.name}>
+            <Typography id="name-label" sx={{ fontSize: 13, mb: 1 }}>
+              Full Name*
+            </Typography>
             <TextField
               className={errors.name ? "field-error" : ""}
               fullWidth
               placeholder="e.g., Peter Ford"
               value={v.name}
+              slotProps={{
+                htmlInput: {
+                  "aria-labelledby": "name-label",
+                  "aria-describedby": errors.name ? "name-error" : undefined,
+                },
+              }}
               required
               onChange={(e) => set("name", e.target.value)}
               error={!!errors.name}
               sx={input}
             />
-          </Box>
-          <Box sx={card}>
-            <Typography sx={{ fontSize: 13, mb: 1 }}>Email*</Typography>
+          </FieldSection>
+          <FieldSection name="email" error={errors.email}>
+            <Typography id="email-label" sx={{ fontSize: 13, mb: 1 }}>
+              Email*
+            </Typography>
             <TextField
               className={errors.email ? "field-error" : ""}
               fullWidth
               placeholder="e.g., test@email.com"
               value={v.email}
+              slotProps={{
+                htmlInput: {
+                  "aria-labelledby": "email-label",
+                  "aria-describedby": errors.email ? "email-error" : undefined,
+                  maxLength: 100,
+                },
+              }}
               required
               onChange={(e) => set("email", e.target.value)}
               error={!!errors.email}
               sx={input}
             />
-          </Box>
-          <Box sx={card}>
-            <Typography sx={{ fontSize: 13, mb: 1 }}>
+          </FieldSection>
+          <FieldSection name="phone" error={errors.phone}>
+            <Typography id="phone-label" sx={{ fontSize: 13, mb: 1 }}>
               Contact Number*
             </Typography>
             <TextField
               className={errors.phone ? "field-error" : ""}
               fullWidth
-              placeholder="e.g., +1234567890"
+              placeholder="e.g., 0812345678"
+              type="tel"
               value={v.phone}
+              slotProps={{
+                htmlInput: {
+                  "aria-labelledby": "phone-label",
+                  "aria-describedby": errors.phone ? "phone-error" : undefined,
+                  maxLength: 15,
+                },
+              }}
               required
               onChange={(e) => set("phone", e.target.value)}
               error={!!errors.phone}
-              inputProps={{ maxLength: 15 }}
               sx={input}
             />
-          </Box>
-          <Box sx={card} className={errors.dob ? "field-error" : ""}>
-            <Typography sx={{ fontSize: 13, mb: 1 }}>Date of Birth*</Typography>
+          </FieldSection>
+          <FieldSection name="dob" error={errors.dob}>
+            <Typography id="dob-label" sx={{ fontSize: 13, mb: 1 }}>
+              Date of Birth*
+            </Typography>
             <LocalizationProvider dateAdapter={AdapterDayjs}>
               <DatePicker
                 value={v.dob}
@@ -266,21 +357,30 @@ export default function App() {
                     fullWidth: true,
                     required: true,
                     error: !!errors.dob,
-                    helperText: errors.dob || "",
+                    slotProps: {
+                      htmlInput: {
+                        "aria-labelledby": "dob-label",
+                        "aria-describedby": errors.dob
+                          ? "dob-error"
+                          : undefined,
+                      },
+                    },
                     placeholder: "DD/MM/YYYY",
                     sx: input,
                   },
                 }}
               />
             </LocalizationProvider>
-          </Box>
-          <Box sx={card}>
-            <Typography sx={{ fontSize: 13, mb: 1 }}>
+          </FieldSection>
+          <FieldSection name="exp" error={errors.exp}>
+            <Typography id="exp-label" sx={{ fontSize: 13, mb: 1 }}>
               Archaeology Experience
             </Typography>
             <FormControl fullWidth sx={input}>
               <Select
                 value={v.exp}
+                labelId="exp-label"
+                error={!!errors.exp}
                 onChange={(e) => set("exp", e.target.value)}
               >
                 <MenuItem value="No experience">No experience</MenuItem>
@@ -288,9 +388,9 @@ export default function App() {
                 <MenuItem value="Expert">Expert</MenuItem>
               </Select>
             </FormControl>
-          </Box>
-          <Box sx={card} className={errors.roles ? "field-error" : ""}>
-            <Typography sx={{ fontSize: 13, mb: 1 }}>
+          </FieldSection>
+          <FieldSection name="roles" error={errors.roles}>
+            <Typography id="roles-label" sx={{ fontSize: 13, mb: 1 }}>
               Preferred Role in the Expedition*
             </Typography>
             {roles.map((r) => (
@@ -307,13 +407,14 @@ export default function App() {
                 sx={{ display: "flex", m: 0, fontSize: 14 }}
               />
             ))}
-          </Box>
-          <Box sx={card} className={errors.region ? "field-error" : ""}>
-            <Typography sx={{ fontSize: 13, mb: 1 }}>
+          </FieldSection>
+          <FieldSection name="region" error={errors.region}>
+            <Typography id="region-label" sx={{ fontSize: 13, mb: 1 }}>
               Preferred Expedition Region*
             </Typography>
             <RadioGroup
               value={v.region}
+              aria-labelledby="region-label"
               onChange={(e) => set("region", e.target.value)}
             >
               {regions.map((r) => (
@@ -326,27 +427,30 @@ export default function App() {
                 />
               ))}
             </RadioGroup>
-          </Box>
-          <Box sx={card}>
-            <Typography sx={{ fontSize: 13 }}>
+          </FieldSection>
+          <FieldSection name="salary" error={errors.salary}>
+            <Typography id="salary-label" sx={{ fontSize: 13 }}>
               Select your desired salary per week ($): {v.salary}
             </Typography>
             <Slider
               value={v.salary}
-              min={-10}
-              max={2000}
+              aria-labelledby="salary-label"
+              valueLabelDisplay="auto"
+              min={0}
+              max={1700}
               step={10}
               onChange={(_, x) => set("salary", x)}
               sx={{ color: "#c4543b", mt: 1.5 }}
             />
-          </Box>
-          <Box sx={card}>
-            <Typography sx={{ fontSize: 13, mb: 1 }}>
+          </FieldSection>
+          <FieldSection name="contact" error={errors.contact}>
+            <Typography id="contact-label" sx={{ fontSize: 13, mb: 1 }}>
               Preferred Contact Method
             </Typography>
             <RadioGroup
               row
               value={v.contact}
+              aria-labelledby="contact-label"
               onChange={(e) => set("contact", e.target.value)}
             >
               {["Email", "Phone", "WhatsApp", "SMS"].map((x) => (
@@ -359,13 +463,15 @@ export default function App() {
                 />
               ))}
             </RadioGroup>
-          </Box>
-          <Box sx={card} className={errors.file ? "field-error" : ""}>
-            <Typography sx={{ fontSize: 13, mb: 1 }}>
+          </FieldSection>
+          <FieldSection name="file" error={errors.file}>
+            <Typography id="file-label" sx={{ fontSize: 13, mb: 1 }}>
               Upload Passport/ID* (JPG, PNG, PDF)
             </Typography>
             <Button
-              component="label"
+              component="button"
+              type="button"
+              onClick={() => fileRef.current?.click()}
               variant="outlined"
               sx={{
                 color: "#333",
@@ -377,16 +483,20 @@ export default function App() {
               }}
             >
               {v.file ? v.file.name : "Choose File"}
-              <input
-                type="file"
-                hidden
-                accept="image/jpeg,image/png,application/pdf"
-                onChange={(e) => set("file", e.target.files[0])}
-              />
             </Button>
-          </Box>
-          <Box sx={card}>
-            <Typography sx={{ fontSize: 13, mb: 1 }}>
+            <input
+              ref={fileRef}
+              type="file"
+              hidden
+              accept=".jpg,.jpeg,.png,.pdf"
+              onChange={(e) => {
+                const selected = e.target.files?.[0];
+                if (selected) set("file", selected);
+              }}
+            />
+          </FieldSection>
+          <FieldSection name="comments" error={errors.comments}>
+            <Typography id="comments-label" sx={{ fontSize: 13, mb: 1 }}>
               Additional Comments
             </Typography>
             <TextField
@@ -394,16 +504,23 @@ export default function App() {
               multiline
               rows={4}
               value={v.comments}
+              slotProps={{
+                htmlInput: {
+                  "aria-labelledby": "comments-label",
+                  "aria-describedby": errors.comments
+                    ? "comments-error"
+                    : undefined,
+                },
+              }}
               onChange={(e) => set("comments", e.target.value)}
-              inputProps={{ maxLength: 1000 }}
               sx={input}
             />
-          </Box>
-          <Box sx={card} className={errors.terms ? "field-error" : ""}>
+          </FieldSection>
+          <FieldSection name="terms" error={errors.terms}>
             <FormControlLabel
+              id="terms-label"
               control={
                 <Checkbox
-                  required
                   checked={v.terms}
                   onChange={(e) => set("terms", e.target.checked)}
                 />
@@ -411,7 +528,7 @@ export default function App() {
               label="I Agree to Terms and Conditions*"
               sx={{ m: 0, fontSize: 14 }}
             />
-          </Box>
+          </FieldSection>
           <Box
             sx={{
               display: "flex",
@@ -442,21 +559,7 @@ export default function App() {
               Submit Registration
             </Button>
             <Button
-              onClick={() =>
-                setV({
-                  ...v,
-                  name: "",
-                  email: "",
-                  phone: "",
-                  dob: null,
-                  roles: [],
-                  region: "",
-                  salary: 700,
-                  file: null,
-                  comments: "",
-                  terms: false,
-                })
-              }
+              onClick={clearForm}
               sx={{
                 background: "#fff",
                 border: "1px solid #e0ddd5",
